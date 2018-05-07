@@ -7,20 +7,26 @@
 class Matcher
 {
     /**
-     * Frequency lists to do matching on
+     * Keyboard Adjacency Graphs
+     *
+     * Lifted from https://github.com/dropbox/zxcvbn/blob/master/src/adjacency_graphs.coffee
+     *
      * @var array
      */
-    private $frequencyLists;
+    private $adjacencyGraphs;
 
     public function __construct()
     {
-        $this->frequencyLists = json_decode(file_get_contents(__DIR__."/frequency_lists.json"), true);
+        $this->adjacencyGraphs = json_decode(file_get_contents(__DIR__."/adjacency_graphs.json"), true);
     }
 
     /**
      * @return array
      */
-    public function getFrequencyLists(): array
+    public function getAdjacencyGraphs(): array
+    {
+        return $this->adjacencyGraphs;
+    }
     {
         return $this->frequencyLists;
     }
