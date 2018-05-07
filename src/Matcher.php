@@ -15,9 +15,74 @@ class Matcher
      */
     private $adjacencyGraphs;
 
+    /**
+     * Array of dictionaries, ranked by how often they occur
+     */
+    private $rankedDictionaries;
+
+    /**
+     * Table of character => l33t symbol substitutions
+     * @var array
+     */
+    private $leettable;
+
     public function __construct()
     {
+        $this->buildRankedDictionaries(json_decode(file_get_contents(__DIR__."/frequency_lists.json"), true));
         $this->adjacencyGraphs = json_decode(file_get_contents(__DIR__."/adjacency_graphs.json"), true);
+        $this->leettable = [
+            'a' => ['4', '@'],
+            'b' => ['8'],
+            'c' => ['(', '{', '[', '<'],
+            'e' => ['3'],
+            'g' => ['6', '9'],
+            'i' => ['1', '!', '|'],
+            'l' => ['1', '|', '7'],
+            'o' => ['0'],
+            's' => ['$', '5'],
+            't' => ['+', '7'],
+            'x' => ['%'],
+            'z' => ['2']
+        ];
+    }
+
+    public function dictionaryMatch($password, $_ranked_dictionaries = null)
+    {
+        $_ranked_dictionaries = $_ranked_dictionaries ?? $this->rankedDictionaries;
+
+        $matches = [];
+        $length = strlen($password);
+        $passwordLower = strtolower($password);
+        foreach ($_ranked_dictionaries as $dictionary_name => $ranked_dictionary) {
+            foreach (range(0, $length) as $i) {
+                foreach (range($i, $length) as $j) {
+                    // If the sliced string is in the dictionary, we need to add a match.
+                    $subStrLength = $j - $i;
+                    $substr = substr($passwordLower, $i, $subStrLength);
+                    if (
+                        array_key_exists(
+                            $substr,
+                            $ranked_dictionary
+                        )
+                    ) {
+                        $word = $substr;
+                        $matches[] = [
+                            'pattern' => 'dictionary',
+                            'i' => $i,
+                            'j' => $j - 1,
+                            'token' => substr($password, $i, $subStrLength),
+                            'matched_word' => $word,
+                            'rank' => $ranked_dictionary[$word],
+                            'dictionary_name' => $dictionary_name,
+                            'reversed' => false,
+                            'l33t' => false
+                        ];
+                    }
+                }
+            }
+        }
+
+        return $matches;
     }
 
     /**
@@ -27,7 +92,31 @@ class Matcher
     {
         return $this->adjacencyGraphs;
     }
+
+    private function buildRankedDictionaries($frequencyLists)
     {
-        return $this->frequencyLists;
+        foreach ($frequencyLists as $name => $list) {
+            $result = [];
+
+            $i = 1; // Rank starts at 1, not 0.
+            foreach ($list as $word) {
+                $result[$word] = $i++;
+            }
+
+            $this->rankedDictionaries[$name] = $result;
+        }
+    }
+
+    public function getRankedDictionaries()
+    {
+        return $this->rankedDictionaries;
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getLeettable()
+    {
+        return $this->leettable;
     }
 }
