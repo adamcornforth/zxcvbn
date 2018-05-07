@@ -1,0 +1,24 @@
+{
+    "name": "adamcornforth/zxcvbn",
+    "description": "PHP Port of Zxcvbn.",
+    "keywords": ["composer", "package"],
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Adam Cornforth",
+            "email": "adam@apcdesigner.com"
+        }
+    ],
+    "type": "project",
+    "require": {
+		"php": ">=7.1"
+    },
+	"require-dev": {
+        "phpunit/phpunit": "^6.0"
+    },
+	"autoload": {
+        "psr-4": {
+            "Cornforth\\Zxcvbn\\": "src/"
+        }
+    }
+}
