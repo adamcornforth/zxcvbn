@@ -85,6 +85,11 @@ class Matcher
         return $matches;
     }
 
+    public function setUserInputDictionary($ordered_list)
+    {
+        $this->rankedDictionaries['user_inputs'] = $this->buildRankedDictionary($ordered_list);
+    }
+
     /**
      * @return array
      */
@@ -96,14 +101,7 @@ class Matcher
     private function buildRankedDictionaries($frequencyLists)
     {
         foreach ($frequencyLists as $name => $list) {
-            $result = [];
-
-            $i = 1; // Rank starts at 1, not 0.
-            foreach ($list as $word) {
-                $result[$word] = $i++;
-            }
-
-            $this->rankedDictionaries[$name] = $result;
+            $this->rankedDictionaries[$name] = $this->buildRankedDictionary($list);
         }
     }
 
@@ -118,5 +116,22 @@ class Matcher
     public function getLeettable()
     {
         return $this->leettable;
+    }
+
+    /**
+     * @param $list
+     * @return array
+     * @internal param $name
+     */
+    private function buildRankedDictionary($list): array
+    {
+        $result = [];
+
+        $i = 1; // Rank starts at 1, not 0.
+        foreach ($list as $word) {
+            $result[$word] = $i++;
+        }
+
+        return $result;
     }
 }

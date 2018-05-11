@@ -185,6 +185,44 @@ class MatcherTest extends TestCase
         }
     }
 
+    public function test_it_matches_the_default_dictionaries() {
+        $matches = $this->sut->dictionaryMatch('wow');
+        $patterns = ['wow'];
+        $ijs = [[0,2]];
+        $this->checkMatches(
+            "Test it matches the default dictionaries",
+            $matches,
+            'dictionary',
+            $patterns,
+            $ijs,
+            [
+                'matched_word' => $patterns,
+                'rank' => [322],
+                'dictionary_name' => ['us_tv_and_film']
+            ]
+        );
+    }
+
+    public function test_it_matches_with_provided_user_input_dictionary() {
+        $this->sut->setUserInputDictionary(['foo', 'bar']);
+        $matches = $this->sut->dictionaryMatch('foobar');
+        $matches = array_values(array_filter($matches, function ($match) {
+            return $match['dictionary_name'] === 'user_inputs';
+        }));
+
+        $this->checkMatches(
+            "Test it matches with the provided user input dictionary",
+            $matches,
+            'dictionary',
+            ['foo', 'bar'],
+            [[0, 2], [3, 5]],
+            [
+                'matched_word' => ['foo', 'bar'],
+                'rank' => [1, 2]
+            ]
+        );
+    }
+
     /**
      * Takes a pattern and a list of prefixes / suffixes
      *
