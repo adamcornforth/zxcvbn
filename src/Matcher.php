@@ -153,6 +153,13 @@ class Matcher
         return $result;
     }
 
+    /**
+     * Makes a subtable of the leettable that only includes the relevant substitutions in the password
+     *
+     * @param $pw
+     * @param null $_leettable
+     * @return array
+     */
     public function relevantL33tSubtable($pw, $_leettable = null)
     {
         $_leettable = $_leettable ?? $this->leettable;
@@ -160,10 +167,13 @@ class Matcher
         $table = [];
 
         if (!empty($pw)) {
+            // Iterate the password letters
             foreach (str_split($pw) as $pwLetter) {
+                // Iterate the leettable substitutions
                 foreach ($_leettable as $letter => $substitutions) {
                     $found = array_search($pwLetter, $substitutions);
                     if ($found !== false) {
+                        // If we find a substitution, add it to the new table
                         $table[$letter][] = $substitutions[$found];
                     }
                 }
