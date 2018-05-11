@@ -152,4 +152,24 @@ class Matcher
 
         return $result;
     }
+
+    public function relevantL33tSubtable($pw, $_leettable = null)
+    {
+        $_leettable = $_leettable ?? $this->leettable;
+
+        $table = [];
+
+        if (!empty($pw)) {
+            foreach (str_split($pw) as $pwLetter) {
+                foreach ($_leettable as $letter => $substitutions) {
+                    $found = array_search($pwLetter, $substitutions);
+                    if ($found !== false) {
+                        $table[$letter][] = $substitutions[$found];
+                    }
+                }
+            }
+        }
+
+        return $table;
+    }
 }

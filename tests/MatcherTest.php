@@ -22,6 +22,7 @@ class MatcherTest extends TestCase
     private $sut;
 
     private $testDictionaries;
+    private $testl33tTable;
 
     protected function setUp()
     {
@@ -42,6 +43,13 @@ class MatcherTest extends TestCase
                 '$' => 4,
                 'asdf1234&*' => 5
             ]
+        ];
+
+        $this->testl33tTable = [
+            'a' => ['4', '@'],
+            'c' => ['(', '{', '[', '<'],
+            'g' => ['6', '9'],
+            'o' => ['0']
         ];
 
         parent::setUp();
@@ -249,6 +257,20 @@ class MatcherTest extends TestCase
         );
     }
 
+    public function test_it_reduces_l33t_table_to_password_only_substitutions() {
+        foreach ([
+            '' => [],
+            'abcdefgo123578!#$&*)]}>' => [],
+            'a' => [],
+            '4' => ['a' => ['4']],
+            '4@' => ['a' => ['4','@']],
+            '4({60' => ['a' => ['4'], 'c' => ['(','{'], 'g' => ['6'], 'o' => ['0']],
+         ] as $pw => $expected) {
+            $subtable = $this->sut->relevantL33tSubtable($pw, $this->testl33tTable);
+            $this->assertEquals($expected, $subtable, json_encode($subtable));
+        }
+    }
+
     /**
      * Takes a pattern and a list of prefixes / suffixes
      *
@@ -317,6 +339,5 @@ class MatcherTest extends TestCase
                 $this->assertEquals($prop_list[$patternKey], $match[$prop_name]);
             }
         }
-
     }
 }
