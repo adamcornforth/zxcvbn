@@ -9,5 +9,14 @@ before_install:
     - export INI=~/.phpenv/versions/$(phpenv version-name)/etc/conf.d/travis.ini
     - echo memory_limit = -1 >> $INI
 
+addons:
+  apt:
+    packages:
+      - parallel
+
 install:
   - composer install
+
+script:
+  # Run tests in parallel (utterly pointless!)
+  - ls -d tests/*.php | parallel --gnu --keep-order 'echo "Running {} tests"; ./vendor/bin/phpunit --colors=always {} || (echo -e "\e[41mFAILED\e[0m {}" && exit 1);'
