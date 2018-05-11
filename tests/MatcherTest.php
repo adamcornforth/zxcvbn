@@ -223,6 +223,32 @@ class MatcherTest extends TestCase
         );
     }
 
+    public function test_reverse_dictionary_matching() {
+        $this->testDictionaries = [
+            'd1' => [
+                123 => 1,
+                321 => 2,
+                456 => 3,
+                654 => 4
+            ]
+        ];
+        $password = '0123456789';
+        $matches = $this->sut->reverseDictionaryMatch($password, $this->testDictionaries);
+        $this->checkMatches(
+            "Test it matches against reversed words",
+            $matches,
+            'dictionary',
+            ['123', '456'],
+            [[1, 3], [4, 6]],
+            [
+                'matched_word' => ['321', '654'],
+                'reversed' => [true, true],
+                'dictionary_name' => ['d1', 'd1'],
+                'rank' => [2, 4]
+            ]
+        );
+    }
+
     /**
      * Takes a pattern and a list of prefixes / suffixes
      *

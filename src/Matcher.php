@@ -85,6 +85,24 @@ class Matcher
         return $matches;
     }
 
+    public function reverseDictionaryMatch($password, $_ranked_dictionaries = null)
+    {
+        $matches = $this->dictionaryMatch(strrev($password), $_ranked_dictionaries);
+
+        foreach ($matches as $key => $match) {
+            $matches[$key]['reversed'] = true;
+
+            // Reverse token back
+            $matches[$key]['token'] = strrev($match['token']);
+
+            // Map coordinates back to original string
+            $matches[$key]['i'] = strlen($password) - 1 - $match['j'];
+            $matches[$key]['j'] = strlen($password) - 1 - $match['i'];
+        }
+
+        return array_reverse($matches);
+    }
+
     public function setUserInputDictionary($ordered_list)
     {
         $this->rankedDictionaries['user_inputs'] = $this->buildRankedDictionary($ordered_list);
