@@ -21,9 +21,29 @@ class MatcherTest extends TestCase
      */
     private $sut;
 
+    private $testDictionaries;
+
     protected function setUp()
     {
         $this->sut = new Matcher();
+
+        $this->testDictionaries = [
+            'd1' => [
+                'motherboard' => 1,
+                'mother' => 2,
+                'board' => 3,
+                'abcd' => 4,
+                'cdef' => 5
+            ],
+            'd2' => [
+                'z' => 1,
+                '8' => 2,
+                '99' => 3,
+                '$' => 4,
+                'asdf1234&*' => 5
+            ]
+        ];
+
         parent::setUp();
     }
 
@@ -67,26 +87,9 @@ class MatcherTest extends TestCase
         unset($this->sut);
     }
 
-    public function testDictionaryMatching()
+    public function test_it_matches_words_that_contain_other_words()
     {
-        $testDictionaries = [
-            'd1' => [
-                'motherboard' => 1,
-                'mother' => 2,
-                'board' => 3,
-                'abcd' => 4,
-                'cdef' => 5
-            ],
-            'd2' => [
-                'z' => 1,
-                '8' => 2,
-                '99' => 3,
-                '$' => 4,
-                'asdf1234&*' => 5
-            ]
-        ];
-
-        $matches = $this->sut->dictionaryMatch('motherboard', $testDictionaries);
+        $matches = $this->sut->dictionaryMatch('motherboard', $this->testDictionaries);
         $patterns = ['mother', 'motherboard', 'board'];
         $this->checkMatches(
             "Matches words that contain other words",
@@ -102,8 +105,92 @@ class MatcherTest extends TestCase
         );
     }
 
-    private function checkMatches($prefix, $matches, $pattern_names, $patterns, $ijs, $props)
+    public function test_it_matches_multiple_words_when_they_overlap() {
+        $matches = $this->sut->dictionaryMatch('abcdef', $this->testDictionaries);
+        $patterns = ['abcd', 'cdef'];
+        $this->checkMatches(
+            "Matches multiple words when they overlap",
+            $matches,
+            'dictionary',
+            $patterns,
+            [[0,3], [2,5]],
+            [
+                'matched_word' => ['abcd', 'cdef'],
+                'rank' => [4, 5],
+                'dictionary_name' => ['d1', 'd1']
+            ]
+        );
+    }
+
+    public function test_it_ignores_uppercasing() {
+        $matches = $this->sut->dictionaryMatch('BoaRdZ', $this->testDictionaries);
+        $patterns = ['BoaRd', 'Z'];
+        $this->checkMatches(
+            "Ignores uppercasing",
+            $matches,
+            'dictionary',
+            $patterns,
+            [[0,4], [5,5]],
+            [
+                'matched_word' => ['board', 'z'],
+                'rank' => [3, 1],
+                'dictionary_name' => ['d1', 'd2']
+            ]
+        );
+    }
+
+    public function test_it_identifies_words_surrounded_by_non_words() {
+        $prefixes = ['q', '%%'];
+        $suffixes = ['%', 'qq'];
+        $word = 'asdf1234&*';
+        $passwords = $this->generatePasswords($word, $prefixes, $suffixes);
+        foreach ($passwords as list($password, $i, $j)) {
+            $matches = $this->sut->dictionaryMatch($password, $this->testDictionaries);
+            $this->checkMatches(
+                "Identifies words surrounded by non-words",
+                $matches,
+                'dictionary',
+                [$word],
+                [[$i,$j]],
+                [
+                    'matched_word' => [$word],
+                    'rank' => [5],
+                    'dictionary_name' => ['d2']
+                ]
+            );
+        }
+    }
+
+    /**
+     * Takes a pattern and a list of prefixes / suffixes
+     *
+     * Returns variants with the pattern embedded
+     * with each possible prefix/suffix combination, including no prefix/suffix
+     *
+     * @param $pattern
+     * @param $prefixes
+     * @param $suffixes
+     * @return array triplet [variant, i, j] where [i, j] is the start/end of the pattern
+     */
+    private function generatePasswords($pattern, $prefixes, $suffixes) {
+        $result = [];
+        foreach ($prefixes as $prefix) {
+            foreach ($suffixes as $suffix) {
+                list($i, $j) = [strlen($prefix), strlen($prefix) + strlen($pattern) - 1];
+                $result[] = [
+                    $prefix.$pattern.$suffix,
+                    $i,
+                    $j
+                ];
+            }
+        }
+
+        return $result;
+    }
+
+    private function checkMatches($message, $matches, $pattern_names, $patterns, $ijs, $props)
     {
+        $this->assertNotEmpty($matches, $message." (empty matches array!)");
         /**
          * If our pattern names is a string, we build an array of format [$pattern_names, $pattern_names] of length $length
          */
@@ -128,9 +215,14 @@ class MatcherTest extends TestCase
             $pattern = $patterns[$patternKey];
 
             [$i, $j] = $ijs[$patternKey];
-            $msg = $prefix.": matches[".$patternKey."].pattern == '".$pattern_name."'";
+
+            $msg = $message.": matches[".$patternKey."].pattern == '".$pattern_name."'";
             $this->assertEquals($pattern_name, $match['pattern'], $msg);
+
+            $msg = $message.": matches[".$patternKey."] should have [i, j] of [$i, $j]";
             $this->assertEquals([$i, $j], [$match['i'], $match['j']], $msg);
+
+            $msg = $message.": matches[".$patternKey."].token == $pattern";
             $this->assertEquals($pattern, $match['token'], $msg);
 
             foreach ($props as $prop_name => $prop_list) {
