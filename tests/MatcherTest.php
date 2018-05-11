@@ -161,6 +161,30 @@ class MatcherTest extends TestCase
         }
     }
 
+    public function test_it_matches_against_all_words_in_provided_dictionaries() {
+        foreach ($this->testDictionaries as $name => $dictionary) {
+            foreach ($dictionary as $word => $rank) {
+                if ($word === 'motherboard') {
+                    continue;
+                }
+
+                $matches = $this->sut->dictionaryMatch($word, $this->testDictionaries);
+                $this->checkMatches(
+                    "Matches against all words in provided dictionaries",
+                    $matches,
+                    'dictionary',
+                    [$word],
+                    [[0, strlen($word) - 1]],
+                    [
+                        'matched_word' => [$word],
+                        'rank' => [$rank],
+                        'dictionary_name' => [$name]
+                    ]
+                );
+            }
+        }
+    }
+
     /**
      * Takes a pattern and a list of prefixes / suffixes
      *
