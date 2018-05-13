@@ -276,7 +276,7 @@ class MatcherTest extends TestCase
             [ [],                        [[]] ],
             [ ['a' => ['@']],                [['@' => 'a']] ],
             [ ['a' => ['@','4']],            [['@' => 'a'], ['4' => 'a']] ],
-//            [ ['a' => ['@','4'], 'c' => ['(']],  [['@' => 'a', '(' => 'c' ], ['4' => 'a', '(' => 'c']] ]
+            [ ['a' => ['@','4'], 'c' => ['(']],  [['@' => 'a', '(' => 'c' ], ['4' => 'a', '(' => 'c']] ]
          ] as list($table, $subs)) {
             $substitutions = $this->sut->enumerateL33tSubs($table);
             $this->assertEquals(

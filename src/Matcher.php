@@ -191,15 +191,12 @@ class Matcher
      */
     public function enumerateL33tSubs($table)
     {
-        $keys = array_keys($table);
-        $substitutions = [[]];
-
-        $substitutions = $this->helper($keys, $table, $substitutions);
+        $substitutions = $this->enumerateL33tReplacements(array_keys($table), $table);
 
         $subDictionaries = [];
-        foreach ($substitutions as $l33tCharacter => $substitution) {
+        foreach ($substitutions as $substitution) {
             $sub_dict = [];
-            foreach ($substitution as $character) {
+            foreach ($substitution as $l33tCharacter => $character) {
                 $sub_dict[$l33tCharacter] = $character;
             }
             $subDictionaries[] = $sub_dict;
@@ -225,14 +222,14 @@ class Matcher
 
             if (!array_key_exists($label, $members)) {
                 $members[$label] = true;
-                $deduplicated[$l33tCharacter] = $substitution;
+                $deduplicated[] = $substitution;
             }
         }
 
         return $deduplicated;
     }
 
-    private function helper($keys, $table, $substitutions)
+    private function enumerateL33tReplacements($keys, $table, $substitutions = [[]])
     {
         if (empty($keys)) {
             // break clause
@@ -244,27 +241,23 @@ class Matcher
 
         $nextSubstitutions = [];
 
-        // Iterate all the l33t characters for this key (letter)
         foreach ($table[$firstKey] as $l33tCharacter) {
-            //
             foreach ($substitutions as $substitution) {
                 $duplicateL33tIndex = -1;
 
-                if (sizeof($substitution)) {
-                    foreach (range(0, sizeof($substitution)) as $i) {
-                        if ($substitution[$i][0] == $l33tCharacter) {
-                            $duplicateL33tIndex = $i;
-                            break;
-                        }
+                foreach ($substitution as $i => $value) {
+                    if ($substitution[$i][0] == $l33tCharacter) {
+                        $duplicateL33tIndex = $i;
+                        break;
                     }
                 }
 
                 if ($duplicateL33tIndex == -1) {
-                    $subExtension = array_merge($substitution, [$firstKey]);
-                    $nextSubstitutions[$l33tCharacter] = $subExtension;
+                    $subExtension = $substitution + [$l33tCharacter => $firstKey];
+                    $nextSubstitutions[] = $subExtension;
                 } else {
-                    $subAlternative = array_slice($substitution, $duplicateL33tIndex, 1);
-                    $subAlternative[$l33tCharacter] = $firstKey;
+                    $subAlternative = array_slice($substitution, $duplicateL33tIndex, 1, true);
+                    $subAlternative[] = [$l33tCharacter => $firstKey];
 
                     $nextSubstitutions[] = $substitution;
                     $nextSubstitutions[] = $subAlternative;
@@ -272,7 +265,10 @@ class Matcher
             }
         }
 
-        $nextSubstitutions = $this->deduplicate($nextSubstitutions);
-        return $this->helper($restKeys, $table, $nextSubstitutions);
+        return $this->enumerateL33tReplacements(
+            $restKeys,
+            $table,
+            $this->deduplicate($nextSubstitutions)
+        );
     }
 }
