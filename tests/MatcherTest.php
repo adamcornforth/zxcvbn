@@ -273,12 +273,17 @@ class MatcherTest extends TestCase
 
     public function test_it_enumerates_l33t_substitutions_for_password() {
         foreach ([
-//            [ [],                        [[]] ],
+            [ [],                        [[]] ],
             [ ['a' => ['@']],                [['@' => 'a']] ],
-//            [ ['a' => ['@','4']],            [['@' => 'a'], ['4' => 'a']] ],
+            [ ['a' => ['@','4']],            [['@' => 'a'], ['4' => 'a']] ],
 //            [ ['a' => ['@','4'], 'c' => ['(']],  [['@' => 'a', '(' => 'c' ], ['4' => 'a', '(' => 'c']] ]
          ] as list($table, $subs)) {
-            $this->assertEquals($subs, $this->sut->enumerateL33tSubs($table));
+            $substitutions = $this->sut->enumerateL33tSubs($table);
+            $this->assertEquals(
+                $subs,
+                $substitutions,
+                "Actual: ".json_encode($substitutions)."\nExpected: ".json_encode($subs)
+            );
         }
     }
 

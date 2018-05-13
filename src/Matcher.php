@@ -182,4 +182,97 @@ class Matcher
 
         return $table;
     }
+
+    /**
+     * List the possible l33t substitutions in a l33t table
+     *
+     * @param $table
+     * @return array
+     */
+    public function enumerateL33tSubs($table)
+    {
+        $keys = array_keys($table);
+        $substitutions = [[]];
+
+        $substitutions = $this->helper($keys, $table, $substitutions);
+
+        $subDictionaries = [];
+        foreach ($substitutions as $l33tCharacter => $substitution) {
+            $sub_dict = [];
+            foreach ($substitution as $character) {
+                $sub_dict[$l33tCharacter] = $character;
+            }
+            $subDictionaries[] = $sub_dict;
+        }
+
+        return $subDictionaries;
+    }
+
+    private function deduplicate($substitutions)
+    {
+        $deduplicated = [];
+        $members = [];
+
+        foreach ($substitutions as $l33tCharacter => $substitution) {
+            $assoc = $substitution;
+            sort($assoc);
+
+            $label = '';
+            foreach ($assoc as $key => $value) {
+                $label = $label.$l33tCharacter.','.$value.'-';
+            }
+            $label = rtrim($label, '-');
+
+            if (!array_key_exists($label, $members)) {
+                $members[$label] = true;
+                $deduplicated[$l33tCharacter] = $substitution;
+            }
+        }
+
+        return $deduplicated;
+    }
+
+    private function helper($keys, $table, $substitutions)
+    {
+        if (empty($keys)) {
+            // break clause
+            return $substitutions;
+        }
+
+        $firstKey = $keys[0];
+        $restKeys = array_slice($keys, 1);
+
+        $nextSubstitutions = [];
+
+        // Iterate all the l33t characters for this key (letter)
+        foreach ($table[$firstKey] as $l33tCharacter) {
+            //
+            foreach ($substitutions as $substitution) {
+                $duplicateL33tIndex = -1;
+
+                if (sizeof($substitution)) {
+                    foreach (range(0, sizeof($substitution)) as $i) {
+                        if ($substitution[$i][0] == $l33tCharacter) {
+                            $duplicateL33tIndex = $i;
+                            break;
+                        }
+                    }
+                }
+
+                if ($duplicateL33tIndex == -1) {
+                    $subExtension = array_merge($substitution, [$firstKey]);
+                    $nextSubstitutions[$l33tCharacter] = $subExtension;
+                } else {
+                    $subAlternative = array_slice($substitution, $duplicateL33tIndex, 1);
+                    $subAlternative[$l33tCharacter] = $firstKey;
+
+                    $nextSubstitutions[] = $substitution;
+                    $nextSubstitutions[] = $subAlternative;
+                }
+            }
+        }
+
+        $nextSubstitutions = $this->deduplicate($nextSubstitutions);
+        return $this->helper($restKeys, $table, $nextSubstitutions);
+    }
 }
