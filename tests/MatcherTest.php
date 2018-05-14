@@ -266,7 +266,7 @@ class MatcherTest extends TestCase
             '4@' => ['a' => ['4','@']],
             '4({60' => ['a' => ['4'], 'c' => ['(','{'], 'g' => ['6'], 'o' => ['0']],
          ] as $pw => $expected) {
-            $subtable = $this->sut->relevantL33tSubtable($pw, $this->testl33tTable);
+            $subtable = $this->sut->getRelevantL33tSubtable($pw, $this->testl33tTable);
             $this->assertEquals($expected, $subtable, json_encode($subtable));
         }
     }
@@ -278,11 +278,52 @@ class MatcherTest extends TestCase
             [ ['a' => ['@','4']],            [['@' => 'a'], ['4' => 'a']] ],
             [ ['a' => ['@','4'], 'c' => ['(']],  [['@' => 'a', '(' => 'c' ], ['4' => 'a', '(' => 'c']] ]
          ] as list($table, $subs)) {
-            $substitutions = $this->sut->enumerateL33tSubs($table);
+            $substitutions = $this->sut->getL33tSubstitutions($table);
             $this->assertEquals(
                 $subs,
                 $substitutions,
                 "Actual: ".json_encode($substitutions)."\nExpected: ".json_encode($subs)
+            );
+        }
+    }
+
+    public function test_l33t_match() {
+        $dictionaries = [
+            'words' => [
+                'aac' => 1,
+                'password' => 3,
+                'paassword' => 4,
+                'asdf0' => 5
+            ],
+            'words2' => [
+                'cgo' => 1
+            ]
+        ];
+
+        $this->assertEquals([], $this->sut->l33tMatch('', $dictionaries, $this->testl33tTable));
+
+        $this->assertEquals([], $this->sut->l33tMatch('password', $dictionaries, $this->testl33tTable));
+
+        foreach ([
+            [ 'p4ssword',    'p4ssword', 'password', 'words',  3, [0,7],  ['4' => 'a'] ],
+            [ 'p@ssw0rd',    'p@ssw0rd', 'password', 'words',  3, [0,7],  ['@' => 'a', '0' => 'o'] ],
+            [ 'aSdfO{G0asDfO', '{G0',    'cgo',      'words2', 1, [5, 7], ['{' => 'c', '0' => 'o'] ]
+            ] as list ($password, $pattern, $word, $dictionary_name, $rank, $ij, $sub)) {
+            $matches = $this->sut->l33tMatch($password, $dictionaries, $this->testl33tTable);
+
+            $this->checkMatches(
+                'Matches against common l33t substitutions',
+                $matches,
+                'dictionary',
+                [$pattern],
+                [$ij],
+                [
+                    'l33t' => [true],
+                    'sub' => [$sub],
+                    'matched_word' => [$word],
+                    'rank' => [$rank],
+                    'dictionary_name' => [$dictionary_name]
+                ]
             );
         }
     }
@@ -352,7 +393,11 @@ class MatcherTest extends TestCase
             $this->assertEquals($pattern, $match['token'], $msg);
 
             foreach ($props as $prop_name => $prop_list) {
-                $this->assertEquals($prop_list[$patternKey], $match[$prop_name]);
+                $this->assertEquals(
+                    $prop_list[$patternKey],
+                    $match[$prop_name],
+                    json_encode($prop_list[$patternKey])."\n".json_encode($match[$prop_name])
+                );
             }
         }
     }

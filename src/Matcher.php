@@ -156,19 +156,19 @@ class Matcher
     /**
      * Makes a subtable of the leettable that only includes the relevant substitutions in the password
      *
-     * @param $pw
+     * @param $password
      * @param null $_leettable
      * @return array
      */
-    public function relevantL33tSubtable($pw, $_leettable = null)
+    public function getRelevantL33tSubtable($password, $_leettable = null)
     {
         $_leettable = $_leettable ?? $this->leettable;
 
         $table = [];
 
-        if (!empty($pw)) {
+        if (!empty($password)) {
             // Iterate the password letters
-            foreach (str_split($pw) as $pwLetter) {
+            foreach (str_split($password) as $pwLetter) {
                 // Iterate the leettable substitutions
                 foreach ($_leettable as $letter => $substitutions) {
                     $found = array_search($pwLetter, $substitutions);
@@ -189,7 +189,7 @@ class Matcher
      * @param $table
      * @return array
      */
-    public function enumerateL33tSubs($table)
+    public function getL33tSubstitutions($table)
     {
         $substitutions = $this->enumerateL33tReplacements(array_keys($table), $table);
 
@@ -270,5 +270,60 @@ class Matcher
             $table,
             $this->deduplicate($nextSubstitutions)
         );
+    }
+
+    public function l33tMatch($password, $_ranked_dictionaries = null, $_leettable = null)
+    {
+        $_ranked_dictionaries = $_ranked_dictionaries ?? $this->rankedDictionaries;
+        $_leettable = $_leettable ?? $this->leettable;
+
+        if (empty($password)) {
+            return [];
+        }
+
+        $matches = [];
+        $length = strlen($password);
+        $passwordLower = strtolower($password);
+        foreach ($_ranked_dictionaries as $dictionary_name => $ranked_dictionary) {
+            foreach (range(0, $length) as $i) {
+                foreach (range($i, $length) as $j) {
+                    // If the sliced string is in the dictionary, we need to add a match.
+                    $subStrLength = $j - $i;
+                    $substr = substr($passwordLower, $i, $subStrLength);
+
+                    $table = $this->getRelevantL33tSubtable($substr, $_leettable);
+                    $sub = $this->getL33tSubstitutions($table);
+
+                    foreach ($sub as $substitutions) {
+                        foreach ($substitutions as $l33tCharacter => $replacement) {
+                            $substr = str_replace($l33tCharacter, $replacement, $substr);
+
+                            if (
+                                array_key_exists(
+                                    $substr,
+                                    $ranked_dictionary
+                                )
+                            ) {
+                                $word = $substr;
+                                $matches[] = [
+                                    'pattern' => 'dictionary',
+                                    'i' => $i,
+                                    'j' => $j - 1,
+                                    'sub' => $substitutions,
+                                    'token' => substr($password, $i, $subStrLength),
+                                    'matched_word' => $word,
+                                    'rank' => $ranked_dictionary[$word],
+                                    'dictionary_name' => $dictionary_name,
+                                    'reversed' => false,
+                                    'l33t' => true
+                                ];
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        return $matches;
     }
 }
