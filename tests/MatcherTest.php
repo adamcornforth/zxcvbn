@@ -23,6 +23,7 @@ class MatcherTest extends TestCase
 
     private $testDictionaries;
     private $testl33tTable;
+    private $l33tDictionaries;
 
     protected function setUp()
     {
@@ -50,6 +51,18 @@ class MatcherTest extends TestCase
             'c' => ['(', '{', '[', '<'],
             'g' => ['6', '9'],
             'o' => ['0']
+        ];
+
+        $this->l33tDictionaries = [
+            'words' => [
+                'aac' => 1,
+                'password' => 3,
+                'paassword' => 4,
+                'asdf0' => 5
+            ],
+            'words2' => [
+                'cgo' => 1
+            ]
         ];
 
         parent::setUp();
@@ -288,28 +301,16 @@ class MatcherTest extends TestCase
     }
 
     public function test_l33t_match() {
-        $dictionaries = [
-            'words' => [
-                'aac' => 1,
-                'password' => 3,
-                'paassword' => 4,
-                'asdf0' => 5
-            ],
-            'words2' => [
-                'cgo' => 1
-            ]
-        ];
+        $this->assertEquals([], $this->sut->l33tMatch('', $this->l33tDictionaries, $this->testl33tTable));
 
-        $this->assertEquals([], $this->sut->l33tMatch('', $dictionaries, $this->testl33tTable));
-
-        $this->assertEquals([], $this->sut->l33tMatch('password', $dictionaries, $this->testl33tTable));
+        $this->assertEquals([], $this->sut->l33tMatch('password', $this->l33tDictionaries, $this->testl33tTable));
 
         foreach ([
             [ 'p4ssword',    'p4ssword', 'password', 'words',  3, [0,7],  ['4' => 'a'] ],
             [ 'p@ssw0rd',    'p@ssw0rd', 'password', 'words',  3, [0,7],  ['@' => 'a', '0' => 'o'] ],
             [ 'aSdfO{G0asDfO', '{G0',    'cgo',      'words2', 1, [5, 7], ['{' => 'c', '0' => 'o'] ]
             ] as list ($password, $pattern, $word, $dictionary_name, $rank, $ij, $sub)) {
-            $matches = $this->sut->l33tMatch($password, $dictionaries, $this->testl33tTable);
+            $matches = $this->sut->l33tMatch($password, $this->l33tDictionaries, $this->testl33tTable);
 
             $this->checkMatches(
                 'Matches against common l33t substitutions',
@@ -326,6 +327,32 @@ class MatcherTest extends TestCase
                 ]
             );
         }
+    }
+
+    public function test_l33t_match_overlapping_patterns() {
+        $matches = $this->sut->l33tMatch('@a(go{G0', $this->l33tDictionaries, $this->testl33tTable);
+
+        $this->checkMatches(
+            'Matches against (overlapping) l33t substitutions',
+            $matches,
+            'dictionary',
+            ['@a(', '(go', '{G0'],
+            [[0,2], [2,4], [5,7]],
+            [
+                'l33t' => [true, true, true],
+                'sub' => [['@' => 'a', '(' => 'c'], ['(' => 'c'], ['{' => 'c', '0' => 'o']],
+                'matched_word' => ['aac', 'cgo', 'cgo'],
+                'rank' => [1, 1, 1],
+                'dictionary_name' => ['words', 'words2', 'words2']
+            ]
+        );
+    }
+
+    public function test_l33t_match_doesnt_match_multiple_subsitutions_one_letter() {
+        $this->assertEmpty(
+            $this->sut->l33tMatch('p4@ssword', $this->l33tDictionaries, $this->testl33tTable),
+            "Test l33t match doesn't match multiple substitutions (one letter)"
+        );
     }
 
     /**

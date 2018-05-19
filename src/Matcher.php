@@ -289,15 +289,17 @@ class Matcher
                 foreach (range($i, $length) as $j) {
                     // If the sliced string is in the dictionary, we need to add a match.
                     $subStrLength = $j - $i;
-                    $substr = substr($passwordLower, $i, $subStrLength);
+                    $sliceSubstr = substr($passwordLower, $i, $subStrLength);
 
-                    $table = $this->getRelevantL33tSubtable($substr, $_leettable);
+                    $table = $this->getRelevantL33tSubtable($sliceSubstr, $_leettable);
                     $sub = $this->getL33tSubstitutions($table);
 
                     foreach ($sub as $substitutions) {
+                        // We overwrite the string here so we aren't replacing more than one sub at
+                        // a time e.g. p4@ssword --> paassword
+                        $substr = $sliceSubstr;
                         foreach ($substitutions as $l33tCharacter => $replacement) {
                             $substr = str_replace($l33tCharacter, $replacement, $substr);
-
                             if (
                                 array_key_exists(
                                     $substr,
