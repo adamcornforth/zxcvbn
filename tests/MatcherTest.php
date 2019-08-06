@@ -357,7 +357,7 @@ class MatcherTest extends TestCase
 
     public function test_spatial_matching() {
         foreach (['', '/', 'qw', '*/'] as $password) {
-            // $this->assertEquals([], $this->sut->spatialMatch($password));
+            $this->assertEquals([], $this->sut->spatialMatch($password));
         }
 
         $adjacencyGraphs = $this->sut->getAdjacencyGraphs();
