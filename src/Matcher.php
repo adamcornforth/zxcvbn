@@ -6,6 +6,7 @@
 */
 class Matcher
 {
+    const SHIFTED_RX = '/[~!@#$%^&*()_+QWERTYUIOP{}|ASDFGHJKL:"ZXCVBNM<>?]/';
     /**
      * Keyboard Adjacency Graphs
      *
@@ -322,6 +323,101 @@ class Matcher
                             }
                         }
                     }
+                }
+            }
+        }
+
+        return $matches;
+    }
+
+    public function spatialMatch($password, $_graphs = null)
+    {
+        $_graphs = $_graphs ?? $this->adjacencyGraphs;
+
+        $matches = [];
+
+        foreach ($_graphs as $graphName => $graph) {
+            $passwordArray = str_split($password);
+            if ($match = $this->spatialMatchHelper($passwordArray, $graph, $graphName)) {
+                $matches = array_merge($matches, $match);
+            }
+        }
+
+        sort($matches);
+
+        return $matches;
+    }
+
+    private function spatialMatchHelper($password, $graph, $graphName)
+    {
+        $matches = [];
+        $i = 0;
+
+        while ($i < sizeof($password) - 1) {
+            $j = $i + 1;
+            $last_direction = null;
+            $turns = 0;
+            if (in_array($graphName, ['qwerty', 'dvorak']) && preg_match(self::SHIFTED_RX, $password[$i])) {
+                // initial character is shifted
+                $shifted_count = 1;
+            } else {
+                $shifted_count = 0;
+            }
+
+            // Loop forever until we break out
+            while(true) {
+                $prevChar = $password[$j-1];
+                $found = false;
+                $foundDirection = -1;
+                $curDirection = -1;
+                $adjacents = $graph[$prevChar] ?? [];
+
+                # consider growing pattern by one character if j hasn't gone over the edge.
+                if ($j < sizeof($password)) {
+                    $curChar = $password[$j];
+                    // For every character around the current character on the keyboard layout...
+                    foreach ($adjacents as $adj) {
+                        $adj = str_split($adj);
+                        $curDirection += 1;
+                        if ($adj && array_search($curChar, $adj) !== false) {
+                            $found = true;
+                            $foundDirection = $curDirection;
+                            if (array_search($curChar, $adj) == 1) {
+                                // index 1 in the adjacency means the key is shifted,
+                                // 0 means unshifted: A vs a, % vs 5, etc.
+                                // for example, 'q' is adjacent to the entry '2@'.
+                                // @ is shifted w/ index 1, 2 is unshifted.
+                                $shifted_count += 1;
+                            }
+                            if ($last_direction != $foundDirection) {
+                                // adding a turn is correct even in the initial case when last_direction is null:
+                                // every spatial pattern starts with a turn.
+                                $turns += 1;
+                                $last_direction = $foundDirection;
+                            }
+                            break;
+                        }
+                    }
+                }
+
+                # if the current pattern continued, extend j and try to grow again
+                if ($found) {
+                    $j += 1;
+                } else {
+                    # otherwise push the pattern discovered so far, if any...
+                    if ($j - $i > 2) {
+                        $matches[] = [
+                            'pattern' => 'spatial',
+                            'i' => $i,
+                            'j' => $j-1,
+                            'token' => implode("", array_slice($password, $i, $j - $i)),
+                            'graph' => $graphName,
+                            'turns' => $turns,
+                            'shifted_count' => $shifted_count
+                        ];
+                    }
+                    $i = $j;
+                    break;
                 }
             }
         }

@@ -355,6 +355,64 @@ class MatcherTest extends TestCase
         );
     }
 
+    public function test_spatial_matching() {
+        foreach (['', '/', 'qw', '*/'] as $password) {
+            // $this->assertEquals([], $this->sut->spatialMatch($password));
+        }
+
+        $adjacencyGraphs = $this->sut->getAdjacencyGraphs();
+        $graphs = ['qwerty' => $adjacencyGraphs['qwerty']];
+        $pattern = '6tfGHJ';
+
+        $matches = $this->sut->spatialMatch("rz!$pattern%z", $graphs);
+
+        $this->checkMatches(
+            "Matches against spatial patterns surrounded by non-spatial patterns",
+            $matches,
+            'spatial',
+            [$pattern],
+            [[3, 3 + strlen($pattern) - 1]],
+            [
+                'graph' => ['qwerty'],
+                'turns' => [2],
+                'shifted_count' => [3]
+            ]
+        );
+
+        foreach ([
+            [ '12345',        'qwerty',     1, 0 ],
+            [ '@WSX',         'qwerty',     1, 4 ],
+            [ '6tfGHJ',       'qwerty',     2, 3 ],
+            // [ 'hGFd',         'qwerty',     1, 2 ],
+            [ '/;p09876yhn',  'qwerty',     3, 0 ],
+            [ 'Xdr%',         'qwerty',     1, 2 ],
+            [ '159-',         'keypad',     1, 0 ],
+            [ '*84',          'keypad',     1, 0 ],
+            [ '/8520',        'keypad',     1, 0 ],
+            [ '369',          'keypad',     1, 0 ],
+            [ '/963.',        'mac_keypad', 1, 0 ],
+            [ '*-632.0214',   'mac_keypad', 9, 0 ],
+            [ 'aoEP%yIxkjq:', 'dvorak',     4, 5 ],
+            [ ';qoaOQ:Aoq;a', 'dvorak',    11, 4 ]
+        ] as list($pattern, $keyboard, $turns, $shifts)) {
+            $_graphs = [];
+            $_graphs[$keyboard] = $adjacencyGraphs[$keyboard];
+            $matches = $this->sut->spatialMatch($pattern, $_graphs);
+            $this->checkMatches(
+                "Matches ".$pattern." as a ".$keyboard." pattern",
+                $matches,
+                'spatial',
+                [$pattern],
+                [[0, strlen($pattern) -1]],
+                [
+                    'graph' => [$keyboard],
+                    'turns' => [$turns],
+                    'shifted_count' => [$shifts]
+                ]
+            );
+        }
+    }
+
     /**
      * Takes a pattern and a list of prefixes / suffixes
      *
@@ -423,7 +481,7 @@ class MatcherTest extends TestCase
                 $this->assertEquals(
                     $prop_list[$patternKey],
                     $match[$prop_name],
-                    json_encode($prop_list[$patternKey])."\n".json_encode($match[$prop_name])
+                    $pattern."\n".json_encode($prop_list[$patternKey])."\n".json_encode($match[$prop_name])
                 );
             }
         }
