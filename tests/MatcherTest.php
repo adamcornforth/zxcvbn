@@ -413,6 +413,29 @@ class MatcherTest extends TestCase
         }
     }
 
+    public function test_sequence_matching()
+    {
+        foreach (['', 'a', '1'] as $password) {
+            $this->assertEquals(
+                [],
+                $this->sut->sequenceMatch($password),
+
+            );
+        }
+
+        $matches = $this->sut->sequenceMatch('abcbabc');
+        $this->checkMatches(
+            'Matches overlapping patterns',
+            $matches,
+            'sequence',
+            ['abc', 'cba', 'abc'],
+            [[0, 2], [2, 4], [4, 6]],
+            [
+                'ascending' => [true, false, true]
+            ]
+        );
+    }
+
     /**
      * Takes a pattern and a list of prefixes / suffixes
      *

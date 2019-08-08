@@ -424,4 +424,9 @@ class Matcher
 
         return $matches;
     }
+
+    public function sequenceMatch($password)
+    {
+        return [];
+    }
 }
